@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Reliable AI Conversation Runtime</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, Segoe UI, Arial, sans-serif;
+            background: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 32px 20px;
+        }
+
+        header {
+            margin-bottom: 28px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: 30px;
+            color: #f8fafc;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: #94a3b8;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+        }
+
+        .card.full {
+            grid-column: 1 / -1;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            font-size: 18px;
+            color: #f8fafc;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 100px;
+            resize: vertical;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 12px;
+            background: #0f172a;
+            color: #e2e8f0;
+            font-size: 14px;
+            outline: none;
+        }
+
+        textarea:focus {
+            border-color: #60a5fa;
+        }
+
+        .buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: 600;
+            color: white;
+            background: #2563eb;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.reject {
+            background: #dc2626;
+        }
+
+        button.cancel {
+            background: #d97706;
+        }
+
+        button.timeout {
+            background: #ca8a04;
+        }
+
+        button.failure {
+            background: #9333ea;
+        }
+
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 12px;
+            border-radius: 999px;
+            background: #334155;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        .status.completed {
+            background: #166534;
+        }
+
+        .status.rejected,
+        .status.failed {
+            background: #991b1b;
+        }
+
+        .status.cancelled {
+            background: #9a3412;
+        }
+
+        .status.timed_out {
+            background: #854d0e;
+        }
+
+        .output {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 14px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .meta-box {
+            background: #0f172a;
+            border: 1px solid #334155;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .meta-label {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .meta-value {
+            font-weight: 700;
+        }
+
+        .trace {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .trace-event {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            font-family: Consolas, monospace;
+            font-size: 13px;
+        }
+
+        .trace-icon {
+            color: #22c55e;
+            font-weight: bold;
+        }
+
+        .error {
+            margin-top: 12px;
+            color: #fca5a5;
+            background: #450a0a;
+            border: 1px solid #7f1d1d;
+            border-radius: 8px;
+            padding: 12px;
+        }
+
+        .empty {
+            color: #64748b;
+            font-style: italic;
+        }
+
+        @media (max-width: 800px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card.full {
+                grid-column: auto;
+            }
+
+            .meta {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>Reliable AI Conversation Runtime</h1>
+        <p class="subtitle">
+            Deterministic demonstration of policy gating, streaming,
+            cancellation, timeout, provider failure and operational tracing.
+        </p>
+    </header>
+
+    <div class="grid">
+
+        <!-- Controls -->
+        <section class="card full">
+
+            <h2>Run Scenario</h2>
+
+            <textarea id="userInput">Explain CQRS in simple terms.</textarea>
+
+            <div class="buttons">
+
+                <button onclick="runScenario('success')">
+                    ▶ Success
+                </button>
+
+                <button class="reject" onclick="runScenario('reject')">
+                    ✕ Policy Rejection
+                </button>
+
+                <button class="cancel" onclick="runScenario('cancel')">
+                    ⏹ Cancellation
+                </button>
+
+                <button class="timeout" onclick="runScenario('timeout')">
+                    ⏱ Timeout
+                </button>
+
+                <button class="failure" onclick="runScenario('failure')">
+                    ⚠ Provider Failure
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- Runtime result -->
+        <section class="card">
+
+            <h2>Runtime Result</h2>
+
+            <div class="status-row">
+
+                <span id="status" class="status">
+                    READY
+                </span>
+
+            </div>
+
+            <div class="output" id="output">
+                <span class="empty">
+                    Run a scenario to see the runtime output.
+                </span>
+            </div>
+
+            <div id="error"></div>
+
+            <div class="meta">
+
+                <div class="meta-box">
+                    <div class="meta-label">Run ID</div>
+                    <div class="meta-value" id="runId">—</div>
+                </div>
+
+                <div class="meta-box">
+                    <div class="meta-label">Provider Invocations</div>
+                    <div class="meta-value" id="providerInvocations">—</div>
+                </div>
+
+                <div class="meta-box">
+                    <div class="meta-label">Consumed Chunks</div>
+                    <div class="meta-value" id="consumedChunks">—</div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Persistence -->
+        <section class="card">
+
+            <h2>Runtime Contract</h2>
+
+            <div class="trace">
+
+                <div class="trace-event">
+                    <span class="trace-icon">✓</span>
+                    Policy evaluated before provider
+                </div>
+
+                <div class="trace-event">
+                    <span class="trace-icon">✓</span>
+                    Ordered streamed output
+                </div>
+
+                <div class="trace-event">
+                    <span class="trace-icon">✓</span>
+                    Exactly one terminal state
+                </div>
+
+                <div class="trace-event">
+                    <span class="trace-icon">✓</span>
+                    Non-success cannot become completed
+                </div>
+
+                <div class="trace-event">
+                    <span class="trace-icon">✓</span>
+                    Operational trace without hidden reasoning
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Trace -->
+        <section class="card full">
+
+            <h2>Operational Trace</h2>
+
+            <div id="trace" class="trace">
+
+                <div class="empty">
+                    No trace events yet.
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</div>
+
+<script>
+
+async function runScenario(scenario) {
+
+    setStatus("RUNNING");
+
+    document.getElementById("output").textContent =
+        "Executing runtime...";
+
+    document.getElementById("error").innerHTML = "";
+
+    document.getElementById("trace").innerHTML =
+        '<div class="empty">Executing...</div>';
+
+    const input =
+        document.getElementById("userInput").value;
+
+    try {
+
+        const response = await fetch("/api/run", {
+
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json"
+            },
+
+            body: JSON.stringify({
+                scenario: scenario,
+                input: input
+            })
+
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                result.message || "Runtime request failed"
+            );
+        }
+
+        renderResult(result);
+
+    } catch (error) {
+
+        setStatus("ERROR");
+
+        document.getElementById("output").textContent =
+            "Unable to execute scenario.";
+
+        document.getElementById("error").innerHTML =
+            `<div class="error">${escapeHtml(error.message)}</div>`;
+
+    }
+}
+
+
+function renderResult(result) {
+
+    setStatus(result.status);
+
+    document.getElementById("runId").textContent =
+        result.run_id || "—";
+
+    document.getElementById("providerInvocations").textContent =
+        result.provider_invocations;
+
+    document.getElementById("consumedChunks").textContent =
+        result.consumed_chunks;
+
+    document.getElementById("output").textContent =
+        result.output || "(no successful output)";
+
+    if (result.error) {
+
+        document.getElementById("error").innerHTML =
+            `<div class="error">
+                Error: ${escapeHtml(result.error)}
+            </div>`;
+
+    } else {
+
+        document.getElementById("error").innerHTML = "";
+
+    }
+
+    renderTrace(result.trace || []);
+}
+
+
+function renderTrace(events) {
+
+    const container =
+        document.getElementById("trace");
+
+    if (!events.length) {
+
+        container.innerHTML =
+            '<div class="empty">No trace events.</div>';
+
+        return;
+
+    }
+
+    container.innerHTML = events.map(event => {
+
+        const details =
+            event.details &&
+            Object.keys(event.details).length
+                ? ` — ${escapeHtml(JSON.stringify(event.details))}`
+                : "";
+
+        return `
+            <div class="trace-event">
+                <span class="trace-icon">✓</span>
+                <span>
+                    ${escapeHtml(event.event_type)}
+                    ${details}
+                </span>
+            </div>
+        `;
+
+    }).join("");
+
+}
+
+
+function setStatus(status) {
+
+    const element =
+        document.getElementById("status");
+
+    element.textContent =
+        status.toUpperCase();
+
+    element.className =
+        "status " + status;
+
+}
+
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+
+}
+
+</script>
+
+</body>
+</html>
