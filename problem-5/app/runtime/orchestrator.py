@@ -122,6 +122,14 @@ class RuntimeOrchestrator:
                 error=decision.reason,
             )
 
+            self._trace(
+                "RUN_REJECTED",
+                run,
+                {
+                    "reason": decision.reason,
+                },
+            )
+
             return run
 
         # -----------------------------------------------------
@@ -372,8 +380,16 @@ class RuntimeOrchestrator:
                     error=str(exc),
                 )
 
-        # ---------------------------------------------------------
-        # 16. Return final runtime state
-        # ---------------------------------------------------------
+                self._trace(
+                    "RUN_FAILED",
+                    run,
+                    {
+                        "reason": str(exc),
+                    },
+                )
+
+            # ---------------------------------------------------------
+            # 16. Return final runtime state
+            # ---------------------------------------------------------
 
         return run

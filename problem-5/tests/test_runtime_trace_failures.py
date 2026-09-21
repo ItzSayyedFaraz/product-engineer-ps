@@ -33,11 +33,12 @@ def test_provider_failure_produces_failure_trace():
     assert result.status == RunStatus.FAILED
 
     assert trace.event_types() == [
-        "RUN_STARTED",
-        "POLICY_ACCEPTED",
-        "PROVIDER_STARTED",
-        "OUTPUT_CHUNK",
-        "PROVIDER_ERROR",
+          "RUN_STARTED",
+          "POLICY_ACCEPTED",
+          "PROVIDER_STARTED",
+          "OUTPUT_CHUNK",
+          "PROVIDER_ERROR",
+          "RUN_FAILED",
     ]
 
 
